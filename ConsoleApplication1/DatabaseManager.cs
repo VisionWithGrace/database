@@ -47,10 +47,16 @@ public class DatabaseManager
     {
         var collection1 = new Movie { Title = "Vision With Grace Documentary", Year = "2013" };
         var recognizedObjects = choicesDatabase.GetCollection<string>("recognizedObjects");
+      
         foreach (string objectToAdd in objectsToAdd)
         {
             if (!String.IsNullOrWhiteSpace(objectToAdd))
-                recognizedObjects.Insert(objectToAdd);
+            {
+                BsonDocument doc = BsonDocument.Parse(objectToAdd);
+                recognizedObjects.Insert(doc);
+
+            }
+                
         }
 
     }
@@ -58,7 +64,7 @@ public class DatabaseManager
     private void Connect()
     {
         MongoClient client = new MongoClient();
-        server = MongoServer.Create("mongodb://198.228.234.244:27017");
+        server = MongoServer.Create();
         choicesDatabase = server.GetDatabase("choices_db");
        
     }
@@ -82,8 +88,8 @@ public class DatabaseManager
     static int Main(string[] args)
     {
         var thingsToAdd = new List<string>();
-        thingsToAdd.Add("backpack");
-        thingsToAdd.Add("pencil case");
+        thingsToAdd.Add("{'string': 'backpack'}");
+        thingsToAdd.Add("{'string': 'pencil case'}");
         DatabaseManager mgr = new DatabaseManager();
         mgr.InsertChoice(thingsToAdd);
         mgr.retrieveEntries();
