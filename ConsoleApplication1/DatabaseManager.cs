@@ -49,7 +49,8 @@ public class DatabaseManager
         var recognizedObjects = choicesDatabase.GetCollection<string>("recognizedObjects");
         foreach (string objectToAdd in objectsToAdd)
         {
-            recognizedObjects.Insert(objectToAdd);
+            if (!String.IsNullOrWhiteSpace(objectToAdd))
+                recognizedObjects.Insert(objectToAdd);
         }
 
     }
@@ -57,19 +58,35 @@ public class DatabaseManager
     private void Connect()
     {
         MongoClient client = new MongoClient();
-        server = client.GetServer();
+        server = MongoServer.Create("mongodb://198.228.234.244:27017");
         choicesDatabase = server.GetDatabase("choices_db");
        
     }
 
+    public void retrieveEntries()
+    {
+        var collection = choicesDatabase.GetCollection<string>("recognizedObjects");
+        var backpacks = Query.EQ("Actors", "backpack");
+        foreach (string name in collection.FindAs<string>(backpacks))
+        {
+            Console.Write(name);
+        }
+        
+    }
+
     private void InsertData()
     {
-
+       
     }
 
     static int Main(string[] args)
     {
-
+        var thingsToAdd = new List<string>();
+        thingsToAdd.Add("backpack");
+        thingsToAdd.Add("pencil case");
+        DatabaseManager mgr = new DatabaseManager();
+        mgr.InsertChoice(thingsToAdd);
+        mgr.retrieveEntries();
         return 0;
     }
 }

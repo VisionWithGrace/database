@@ -7,3 +7,12 @@ C:\Users\bhburke\Documents\GitHub\database\WebApplication1\bin\MongoDB.Bson.xml
 C:\Users\bhburke\Documents\GitHub\database\WebApplication1\bin\MongoDB.Driver.xml
 C:\Users\bhburke\Documents\GitHub\database\WebApplication1\obj\Debug\WebApplication1.dll
 C:\Users\bhburke\Documents\GitHub\database\WebApplication1\obj\Debug\WebApplication1.pdb
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\WebApplication1.dll
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\WebApplication1.pdb
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\MongoDB.Bson.dll
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\MongoDB.Driver.dll
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\MongoDB.Bson.xml
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\bin\MongoDB.Driver.xml
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\obj\Debug\WebApplication1.csprojResolveAssemblyReference.cache
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\obj\Debug\WebApplication1.dll
+C:\Users\zahuston\Documents\GitHub\database\WebApplication1\obj\Debug\WebApplication1.pdb
