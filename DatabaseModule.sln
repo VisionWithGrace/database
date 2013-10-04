@@ -1,6 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{024F29BD-8CD7-415C-96C9-E7FCA43DCBC9}"
+	ProjectSection(SolutionItems) = preProject
+		DatabaseManager.cs = DatabaseManager.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
