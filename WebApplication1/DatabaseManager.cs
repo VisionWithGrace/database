@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -13,6 +12,7 @@ using MongoDB.Bson.Serialization.IdGenerators;
 using MongoDB.Bson.Serialization.Options;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Wrappers;
+using System.Collections.Generic;
 public class Movie
 {
     public BsonObjectId Id { get; set; }
@@ -41,7 +41,11 @@ public class DatabaseManager
 	}
     private void Connect()
     {
-        server = MongoServer.Create();
-        moviesDatabase = server.GetDatabase("choices_db");
+        MongoClient client = new MongoClient();
+        server = client.GetServer();
+        choicesDatabase = server.GetDatabase("choices_db");
+    }
+    private void InsertData()
+    {
     }
 }
