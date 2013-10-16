@@ -16,11 +16,14 @@ using MongoDB.Driver.Wrappers;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Drawing.Imaging;
 
 /**
  * TODO:
  * If objects other than strings need to be stored, create necessary methods
  * and serialization map: http://docs.mongodb.org/ecosystem/tutorial/serialize-documents-with-the-csharp-driver/
+ * 
+ * Failure functions when get/insert fails
  * 
  * Image storing/retrieving
  * Some useful links:
@@ -64,12 +67,12 @@ public class DatabaseManager
     }
     //inserts an image with the given metadata into specified collection
     //details should be a JSON-formatted string (dictionary of key-value pairs)
-    //Right now it's built using a filename string containing a path to the image on disk
-    public void InsertImage(string collectionName, string filename, string details)
+    public void InsertImage(string collectionName, Image image, string filename, string details)
     {
-        using (var fs = new FileStream(filename, FileMode.Open))
+        using (var fs = new System.IO.MemoryStream())
         {
-          
+            image.Save(fs, ImageFormat.Jpeg);
+            fs.Position = 0;
             var gridFsInfo = objectsDatabase.GridFS.Upload(fs, filename);
             var fileId = gridFsInfo.Id;
 
@@ -80,7 +83,8 @@ public class DatabaseManager
         }
 
     }
-    public void GetImage(string collectionName, string key, string value )
+
+    public Image GetImage(string collectionName, string key, string value )
     {
         var cursor = this.Get(collectionName, key, value);
         foreach(BsonDocument document in cursor)
@@ -90,16 +94,16 @@ public class DatabaseManager
             var file = objectsDatabase.GridFS.FindOne(Query.EQ("filename", filename));
             System.Console.Write("Found file:");
             System.Console.Write(file);
+            
             using (var stream = file.OpenRead())
             {
-                var bytes = new byte[stream.Length];
-                stream.Read(bytes, 0, (int)stream.Length);
-                using (var newFs = new FileStream("C:\\Users\\Ben\\Desktop\\output_img.png", FileMode.Create))
-                {
-                    newFs.Write(bytes, 0, bytes.Length);
-                }
+                var image = Image.FromStream(stream, true);
+                return image;
+               
             }
+
         }
+        return null;
 
     }
     //returns a cursor which points to the set of documents which match query
@@ -157,10 +161,13 @@ public class DatabaseManager
         queryDict.Add("nothing", "45");
         System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
 
-
-        dbManager.InsertImage("test_collection", "C:\\Users\\Ben\\Desktop\\dollar-bill-2.jpg", "{'president': 'George Washington', 'value': '1'}");
-        dbManager.InsertImage("test_collection", "C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");
-        dbManager.GetImage("test_collection", "value", "1");
+        Image onedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\dollar-bill-2.jpg");
+        Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
+        dbManager.InsertImage("test_collection", onedollar, "onedollar.jpg", "{'president': 'George Washington', 'value': '1'}");
+        dbManager.InsertImage("test_collection", fivedollar, "fivedollar.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");
+        var output_img = dbManager.GetImage("test_collection", "filename", "onedollar.jpg");
+       // output_img.Save("C:\\Users\\Ben\\Desktop\\new_output.jpg");
+        System.Console.Write(output_img);
         return 0;
     }
 }
