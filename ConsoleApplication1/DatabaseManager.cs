@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Drawing.Imaging;
+using System.Text;
 
 /**
  * TODO:
@@ -70,6 +71,20 @@ namespace DatabaseModule
             objectsDatabase = server.GetDatabase("choices_db");
 
         }
+        private static Random random = new Random((int)DateTime.Now.Ticks);
+        private string RandomString(int size)
+        {
+            StringBuilder builder = new StringBuilder();
+            char ch;
+            for (int i = 0; i < size; i++)
+            {
+                ch = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * random.NextDouble() + 65)));                 
+                builder.Append(ch);
+            }
+
+            return builder.ToString();
+        }
+
         //inserts a bson document into specified collection
         //BSON is a key-value dicitonary similar to JSON
         public void Insert(string collectionName, BsonDocument documentToAdd)
@@ -103,7 +118,13 @@ namespace DatabaseModule
             }
 
         }
-
+        //Saves object selected by gui
+        //image = cropped image of object, info = key/value dict of identifying info about that object
+        public void saveSelection(Image image, string info)
+        {
+            var filename = RandomString(10)+".jpg";
+            InsertImage("selected_objects", image, filename, info);  
+        }
         public Image GetImage(string collectionName, string key, string value)
         {
             var cursor = this.Get(collectionName, key, value);
