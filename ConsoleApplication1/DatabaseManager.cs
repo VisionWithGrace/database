@@ -65,11 +65,16 @@ namespace DatabaseModule
 
         private void Connect()
         {
-            const string remoteConnectionString = "mongodb://67.194.30.48";
+            const string remoteConnectionString = "mongodb://67.194.56.104";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
 
+        }
+        private QueryDocument queryFromString(string queryString)
+        {
+            BsonDocument query = MongoDB.Bson.Serialization.BsonSerializer.Deserialize<BsonDocument>(queryString);
+            return new QueryDocument(query);
         }
         private static Random random = new Random((int)DateTime.Now.Ticks);
         private string RandomString(int size)
@@ -112,7 +117,16 @@ namespace DatabaseModule
                 var fileId = gridFsInfo.Id;
 
                 var collection = objectsDatabase.GetCollection(collectionName);
-                BsonDocument bson = BsonDocument.Parse(details);
+                BsonDocument bson;
+                try
+                {
+                    bson = BsonDocument.Parse(details);
+                }
+                catch(Exception e)
+                {
+                    bson = BsonDocument.Parse("{}");
+                }
+          
                 bson.Add(new BsonElement("filename", filename));
                 this.Insert(collectionName, bson);
             }
@@ -130,24 +144,53 @@ namespace DatabaseModule
             var cursor = this.Get(collectionName, key, value);
             foreach (BsonDocument document in cursor)
             {
-                var filename = document["filename"];
-                System.Console.Write(filename);
-                var file = objectsDatabase.GridFS.FindOne(Query.EQ("filename", filename));
-                System.Console.Write("Found file:");
-                System.Console.Write(file);
-
-                using (var stream = file.OpenRead())
+                Image image = GetImage(document);
+                if (image != null)
                 {
-                    var image = Image.FromStream(stream, true);
                     return image;
-
                 }
 
             }
             return null;
 
         }
+        //get image associated with document
+        public Image GetImage(BsonDocument document)
+        {
+            var filename = document["filename"];
+            System.Console.Write(filename);
+            var file = objectsDatabase.GridFS.FindOne(Query.EQ("filename", filename));
 
+            if (file == null)
+            {
+                return null;
+            }
+            System.Console.Write("Found file:");
+            System.Console.Write(file);
+
+            using (var stream = file.OpenRead())
+            {
+                var image = Image.FromStream(stream, true);
+                return image;
+
+            }
+        }
+        public List<Tuple<Image, string> > getUnidentifedObjects()
+        {
+            List<Tuple<Image, string>> list = new List<Tuple<Image, string>>();
+            
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            
+            MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
+            foreach(BsonDocument document in cursor)
+            {
+                Image image = GetImage(document);
+                Tuple<Image, string> tuple = new Tuple<Image, string>(image, document.ToString());
+                list.Add(tuple);
+            }
+            return list;
+
+        }
         /*
          * Adds an object recognized by the CV side to the database
          * Right now relying on an integer ID. Will need to be hooked up to the 
@@ -226,14 +269,15 @@ namespace DatabaseModule
             System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
 
 
-            dbManager.addRecgonizedObject(new RecognizedObject(1, "Backpack"));
-            dbManager.addRecgonizedObject(new RecognizedObject(2, "Calculator"));
+           // dbManager.addRecgonizedObject(new RecognizedObject(1, "Backpack"));
+           // dbManager.addRecgonizedObject(new RecognizedObject(2, "Calculator"));
 
             foreach (RecognizedObject thing in dbManager.retrieveRecentSelection())
             {
                 System.Console.Write(thing.objectName);
             }
-//            Image onedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\dollar-bill-2.jpg");
+            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
+            dbManager.saveSelection(onedollar, "");
 //            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
 //            dbManager.InsertImage("test_collection", onedollar, "onedollar.jpg", "{'president': 'George Washington', 'value': '1'}");
 //            dbManager.InsertImage("test_collection", fivedollar, "fivedollar.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");
