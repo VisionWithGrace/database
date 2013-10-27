@@ -18,3 +18,6 @@ C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\Console
 C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
 C:\Users\zahuston\Documents\GitHub\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
 C:\Users\zahuston\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\bhburke\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
+C:\Users\bhburke\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb

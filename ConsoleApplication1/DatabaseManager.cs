@@ -33,6 +33,23 @@ using System.Drawing.Imaging;
 **/
 
 
+
+/**gui interface:
+ * saveSelectedImage(Image image, string identifyingInfo)
+ * 
+ * editObject(key, value, string newInfo) edit object where key=value
+ * 
+ * getUnidentifiedObjects()
+ * 
+ * getRecentObjects() last objects added
+ * 
+ * getLikelyObjects(key, value) likely objects based on some parameter (time, tag, etc)
+ *                              heuristic logic goes here 
+ * 
+ * 
+ * 
+ */
+
 namespace DatabaseModule
 {
     public class DatabaseManager
