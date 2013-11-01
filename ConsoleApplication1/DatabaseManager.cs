@@ -65,7 +65,7 @@ namespace DatabaseModule
 
         private void Connect()
         {
-            const string remoteConnectionString = "mongodb://67.194.56.104";
+            const string remoteConnectionString = "mongodb://localhost";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
@@ -132,13 +132,7 @@ namespace DatabaseModule
             }
 
         }
-        //Saves object selected by gui
-        //image = cropped image of object, info = key/value dict of identifying info about that object
-        public void saveSelection(Image image, string info)
-        {
-            var filename = RandomString(10)+".jpg";
-            InsertImage("selected_objects", image, filename, info);  
-        }
+        
         public Image GetImage(string collectionName, string key, string value)
         {
             var cursor = this.Get(collectionName, key, value);
@@ -175,22 +169,7 @@ namespace DatabaseModule
 
             }
         }
-        public List<Tuple<Image, string> > getUnidentifedObjects()
-        {
-            List<Tuple<Image, string>> list = new List<Tuple<Image, string>>();
-            
-            var collection = objectsDatabase.GetCollection("selected_objects");
-            
-            MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
-            foreach(BsonDocument document in cursor)
-            {
-                Image image = GetImage(document);
-                Tuple<Image, string> tuple = new Tuple<Image, string>(image, document.ToString());
-                list.Add(tuple);
-            }
-            return list;
-
-        }
+        
         /*
          * Adds an object recognized by the CV side to the database
          * Right now relying on an integer ID. Will need to be hooked up to the 
@@ -240,50 +219,99 @@ namespace DatabaseModule
             var query = new QueryBuilder<BsonDocument>();
             return this.Get(collectionName, query.And(andList));
         }
+        /** Public interface functions for GUI/CV use **/
+        //Saves object selected by gui
+        //image = cropped image of object, info = key/value dict of identifying info about that object
+        public void saveSelection(Image image, string info)
+        {
+            var filename = RandomString(10) + ".jpg";
+            InsertImage("selected_objects", image, filename, info);
+        }
+        //Retrieve a previous selection, where key=value
+        //Returns a Dictionary containing info about the selection + the cropped image
+        //if no result found, returns null
+        public Dictionary<string, object> getSelection(string key, string value)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument matchedDoc = collection.FindOne(Query.EQ(key, value));
+            if(matchedDoc!=null)
+            {
+                Image image = GetImage(matchedDoc);
+                Dictionary<string, object> dict = matchedDoc.ToDictionary();
+                dict.Add("image", image);
+                return dict;
+            }
+            return null;
+        }
+        //Updates a selection with the given id, to have the given key/value pair in its info
+        //If the selection already has a value for the given key, it will be replaced by the new
+        //value, otherwise the new key will be added to the selection's info
+        public void updateSelectionInfo(string id, string key, string value)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument matchedDoc = collection.FindOneById(new ObjectId(id));
+            if(matchedDoc==null)
+            {
+                return;
+            }
+            matchedDoc.Set(key, value);
+            collection.Save(matchedDoc);
+            
+        }
+        //Updates a selection with the given id to have newInfo as it's info
+        //Will completely overwrite old info for the selection
+        public void updateSelectionInfo(string id, string newInfo)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument document = BsonDocument.Parse(newInfo);
+            document.Set("_id", new ObjectId(id));
+            collection.Save(document);
+        }
+        //Retrieves all objects that do not have a 'name' attribute
+        //Returns a List containting Dictionaries of key/value pairs representing a selection
+        //If no objects found without names, will return an empty list
+        public List<Dictionary<string, object>> getUnnamedObjects()
+        {
+            List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
 
+            var collection = objectsDatabase.GetCollection("selected_objects");
 
+            MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
+            foreach (BsonDocument document in cursor)
+            {
+                Image image = GetImage(document);
+                Dictionary<string, object> listItem = document.ToDictionary();
+                listItem.Add("image", image);
+                list.Add(listItem);
+            }
+            return list;
 
+        }
         static int Main(string[] args)
         {
             DatabaseManager dbManager = new DatabaseManager();
-            dbManager.Insert("test_collection", new BsonDocument{
-            {"test", "hello"},
-            {"author", "ben"}
-        });
-            dbManager.Insert("test_collection", new BsonDocument{
-            {"test", "hello"},
-            {"author", "zach"}
-        });
-            dbManager.Insert("test_collection", new BsonDocument{
-            {"test", "nm u"},
-            {"author", "ben"}
-        });
-            var queryDict = new Dictionary<string, string>()
-        {
-            {"test", "hello"},
-            {"author", "ben"}
-        };
+            Image onedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\dollar-bill-2.jpg");
+            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
+            Image tendollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\ten_dollar_bill.jpg");
 
-            System.Console.Write(dbManager.Get("test_collection", queryDict).Count() + "\n");
-            queryDict.Add("nothing", "45");
-            System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
+            string onedollarjson = "{'name': 'one dollar', 'value': '1'}";
+            string fivedollarjson = "{'value': '5'}";
+            string tendollarjson = "{'value': '20'}";
 
+           // dbManager.saveSelection(onedollar, onedollarjson);
+           // dbManager.saveSelection(fivedollar, fivedollarjson);
+           // dbManager.saveSelection(tendollar, tendollarjson);
 
-           // dbManager.addRecgonizedObject(new RecognizedObject(1, "Backpack"));
-           // dbManager.addRecgonizedObject(new RecognizedObject(2, "Calculator"));
-
-            foreach (RecognizedObject thing in dbManager.retrieveRecentSelection())
+            var id = (ObjectId)(dbManager.getSelection("value", "20")["_id"]);
+            dbManager.updateSelectionInfo(id.ToString(), "value", "10");
+            
+            List<Dictionary<string, object>> unnamed = dbManager.getUnnamedObjects();
+            foreach(var entry in unnamed)
             {
-                System.Console.Write(thing.objectName);
+                System.Console.Write(entry["value"]);
             }
-            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
-            dbManager.saveSelection(onedollar, "");
-//            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
-//            dbManager.InsertImage("test_collection", onedollar, "onedollar.jpg", "{'president': 'George Washington', 'value': '1'}");
-//            dbManager.InsertImage("test_collection", fivedollar, "fivedollar.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");
-            var output_img = dbManager.GetImage("test_collection", "filename", "onedollar.jpg");
-            // output_img.Save("C:\\Users\\Ben\\Desktop\\new_output.jpg");
-            System.Console.Write(output_img);
+           
+            
             return 0;
         }
     }
