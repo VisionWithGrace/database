@@ -27,3 +27,6 @@ C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.dll
 C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.dll
 C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.xml
 C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.xml
+C:\Users\zahuston\Documents\GitHub\Tmp1.0\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\zahuston\Documents\GitHub\Tmp1.0\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
+C:\Users\zahuston\Documents\GitHub\Tmp1.0\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb

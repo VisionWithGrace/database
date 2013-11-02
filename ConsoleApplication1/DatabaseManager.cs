@@ -201,6 +201,70 @@ namespace DatabaseModule
             this.Insert("RecognizedObjects", doc);
         }
 
+        /*
+            edit object where identifyingKey= identifyingValue (i.e., “location” = “home”, or “id” = 7).
+            Leaning towards some stack overflow-ish tagging system where Grace’s aid is able to add objects to some general tag (home, school, but in addition things like food, toys)
+        */
+        void modifyObject(string identifyingKey, string identifyingValue, string fieldName, string changedValue)
+        {
+            MongoCursor objectsToEdit = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            foreach (BsonDocument doc in objectsToEdit)
+            {
+                doc.SetElement(new BsonElement(fieldName, changedValue));
+            }
+        }
+
+        /*
+         * Adds the list of tags to the tags array accessed through the key "tags"
+         * Careful. Will currently allow adding the same tag multiple times
+         * Reference: http://stackoverflow.com/questions/11553481/updating-elements-inside-of-an-array-within-a-bsondocument
+         *            http://stackoverflow.com/questions/6260936/adding-bson-array-to-bsondocument-in-mongodb
+         */
+        void addTag(string identifyingKey, string identifyingValue, List<string> tagsToAdd)
+        {
+            MongoCursor objectsToTag = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            foreach (BsonDocument doc in objectsToTag)
+            {
+                var tags = doc["tags"];
+                if (tags == null) // i.e. it wasn't found as an array yet
+                {
+                    BsonArray tmp = new BsonArray { };
+                    doc.Add("tags", tmp);
+                }
+                var tagArray = tags.AsBsonArray;
+                foreach (string tagToAdd in tagsToAdd) //Iterates through strings to add, appending them to array
+                {
+                    tagArray.Add(tagToAdd);
+                }
+            }
+        }
+
+        /*
+            Clears tags specified by oldTags.
+            Can add functionality to clearAllTags if it's needed
+        */
+        void clearTags(string identifyingKey, string identifyingValue, List<string> tagsToRemove)
+        {
+            MongoCursor docsToClearTags = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            foreach (BsonDocument doc in docsToClearTags)
+            {
+                var tags = doc["tags", null];
+                if (tags != null) //Tags array does exist
+                {
+                    BsonArray tagArray = tags.AsBsonArray;
+                    int index;
+                    foreach (string tagToRemove in tagsToRemove)
+                    {
+                        index = tagArray.IndexOf(tagToRemove);
+                        if (index >= 0) //IndexOf returns -1 if not found
+                        {
+                            tagArray.RemoveAt(index);
+                        }
+                    }
+                }
+            }
+        }
+
         public void enterSelectionData(SelectionData selecData)
         {
             BsonDocument doc = BsonDocument.Create(selecData);
