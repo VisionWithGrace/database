@@ -51,21 +51,25 @@ using System.Text;
  * 
  */
 
+
+
 namespace DatabaseModule
 {
     public class DatabaseManager
     {
         private MongoServer server;
         private MongoDatabase objectsDatabase;
+        private string MainCollection;
         // private MongoCollection recognizedObjects;
         public DatabaseManager()
         {
+            MainCollection = "RecognizedObjects";
             Connect();
         }
 
         private void Connect()
         {
-            const string remoteConnectionString = "mongodb://67.194.56.104";
+            const string remoteConnectionString = "mongodb://67.194.66.220";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
@@ -225,13 +229,14 @@ namespace DatabaseModule
             MongoCursor objectsToTag = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in objectsToTag)
             {
-                var tags = doc["tags"];
-                if (tags == null) // i.e. it wasn't found as an array yet
+                
+                if (!doc.Contains("tags")) // i.e. it wasn't found as an array yet
                 {
+                    System.Console.WriteLine("Creating a tag array with an object for the first time. Look at us movin' on up in the world");
                     BsonArray tmp = new BsonArray { };
                     doc.Add("tags", tmp);
                 }
-                var tagArray = tags.AsBsonArray;
+                var tagArray = doc["tags"].AsBsonArray;
                 foreach (string tagToAdd in tagsToAdd) //Iterates through strings to add, appending them to array
                 {
                     tagArray.Add(tagToAdd);
@@ -248,10 +253,9 @@ namespace DatabaseModule
             MongoCursor docsToClearTags = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in docsToClearTags)
             {
-                var tags = doc["tags", null];
-                if (tags != null) //Tags array does exist
+                if (doc.Contains("tags")) //Tags array does exist
                 {
-                    BsonArray tagArray = tags.AsBsonArray;
+                    BsonArray tagArray = doc["tags"].AsBsonArray;
                     int index;
                     foreach (string tagToRemove in tagsToRemove)
                     {
@@ -328,6 +332,16 @@ namespace DatabaseModule
             {"author", "ben"}
         };
 
+            dbManager.Insert("RecognizedObjects", new BsonDocument {
+                {"id", "1"},
+                {"time", "12"}
+            });
+
+            dbManager.Insert("RecognizedObjects", new BsonDocument {
+                {"id", "2"},
+                {"time", "13"}
+            });
+
             System.Console.Write(dbManager.Get("test_collection", queryDict).Count() + "\n");
             queryDict.Add("nothing", "45");
             System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
@@ -336,12 +350,14 @@ namespace DatabaseModule
            // dbManager.addRecgonizedObject(new RecognizedObject(1, "Backpack"));
            // dbManager.addRecgonizedObject(new RecognizedObject(2, "Calculator"));
 
-            foreach (RecognizedObject thing in dbManager.retrieveRecentSelection())
-            {
-                System.Console.Write(thing.objectName);
-            }
-            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
-            dbManager.saveSelection(onedollar, "");
+            dbManager.modifyObject("id", "1", "time", "17");
+            dbManager.modifyObject("id", "2", "time", "19");
+            List<string> tmp = new List<string>();
+            tmp.Add("Home");
+            tmp.Add("Toy");
+            dbManager.addTag("id", "1", tmp);
+//            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
+//            dbManager.saveSelection(onedollar, "");
 //            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
 //            dbManager.InsertImage("test_collection", onedollar, "onedollar.jpg", "{'president': 'George Washington', 'value': '1'}");
 //            dbManager.InsertImage("test_collection", fivedollar, "fivedollar.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");
