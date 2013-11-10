@@ -16,3 +16,14 @@ C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\bin\Debug\MongoDB.Dri
 C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
 C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb
 C:\Users\Ben\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
+C:\Users\zahuston\Documents\GitHub\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\zahuston\Documents\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\bhburke\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
+C:\Users\bhburke\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.dll
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.dll
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.xml
+C:\Users\bhburke\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.xml
