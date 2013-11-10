@@ -69,7 +69,7 @@ namespace DatabaseModule
 
         private void Connect()
         {
-            const string remoteConnectionString = "mongodb://67.194.66.220";
+            const string remoteConnectionString = "mongodb://67.194.91.70";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
@@ -215,6 +215,7 @@ namespace DatabaseModule
             foreach (BsonDocument doc in objectsToEdit)
             {
                 doc.SetElement(new BsonElement(fieldName, changedValue));
+                objectsDatabase.GetCollection("RecognizedObjects").Save(doc); //Save document back into the collection
             }
         }
 
@@ -224,7 +225,7 @@ namespace DatabaseModule
          * Reference: http://stackoverflow.com/questions/11553481/updating-elements-inside-of-an-array-within-a-bsondocument
          *            http://stackoverflow.com/questions/6260936/adding-bson-array-to-bsondocument-in-mongodb
          */
-        void addTag(string identifyingKey, string identifyingValue, List<string> tagsToAdd)
+        void addTags(string identifyingKey, string identifyingValue, List<string> tagsToAdd)
         {
             MongoCursor objectsToTag = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in objectsToTag)
@@ -232,7 +233,7 @@ namespace DatabaseModule
                 
                 if (!doc.Contains("tags")) // i.e. it wasn't found as an array yet
                 {
-                    System.Console.WriteLine("Creating a tag array with an object for the first time. Look at us movin' on up in the world");
+                    System.Console.WriteLine("Creating a tag array with an object for the first time.");
                     BsonArray tmp = new BsonArray { };
                     doc.Add("tags", tmp);
                 }
@@ -241,6 +242,7 @@ namespace DatabaseModule
                 {
                     tagArray.Add(tagToAdd);
                 }
+                objectsDatabase.GetCollection("RecognizedObjects").Save(doc);
             }
         }
 
@@ -265,8 +267,36 @@ namespace DatabaseModule
                             tagArray.RemoveAt(index);
                         }
                     }
+                    objectsDatabase.GetCollection("RecognizedObjects").Save(doc);
                 }
             }
+        }
+
+        /*
+         * Returns a list of tags associated with an object that matches the key value pair passed in
+         * Currently requiring the key value pair to return one unique element, will trigger an error otherwise
+         */
+        List<string> getTags(string identifyingKey, string identifyingValue)
+        {
+            MongoCursor matchedObjects = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            List<string> foundTags = new List<string>();
+            if (matchedObjects.Size() == 1) //Not sure what we want to do about this. Do we want to return a list of tags for multiple objects?
+            {
+                foreach (BsonDocument doc in matchedObjects) //Cursor only works through iterating it seems. Ben? I may be wrong about this
+                {
+                    BsonArray tagArray = doc["tags"].AsBsonArray;
+                    foreach (string tag in tagArray)
+                    {
+                        foundTags.Add(tag);
+                    }
+                }
+            }
+            else
+            {
+                System.ArgumentException argEx = new System.ArgumentException("Found 0 or more than 1 matches in the database", identifyingValue);
+                throw argEx;
+            }
+            return foundTags;
         }
 
         public void enterSelectionData(SelectionData selecData)
@@ -314,6 +344,9 @@ namespace DatabaseModule
         static int Main(string[] args)
         {
             DatabaseManager dbManager = new DatabaseManager();
+            var col = dbManager.objectsDatabase.GetCollection("RecognizedObjects");
+            col.RemoveAll(); //Clearing out for testing temporarily
+
             dbManager.Insert("test_collection", new BsonDocument{
             {"test", "hello"},
             {"author", "ben"}
@@ -346,16 +379,18 @@ namespace DatabaseModule
             queryDict.Add("nothing", "45");
             System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
 
-
-           // dbManager.addRecgonizedObject(new RecognizedObject(1, "Backpack"));
-           // dbManager.addRecgonizedObject(new RecognizedObject(2, "Calculator"));
-
             dbManager.modifyObject("id", "1", "time", "17");
             dbManager.modifyObject("id", "2", "time", "19");
             List<string> tmp = new List<string>();
             tmp.Add("Home");
             tmp.Add("Toy");
-            dbManager.addTag("id", "1", tmp);
+            dbManager.addTags("id", "1", tmp);
+            List<string> tags = new List<string>();
+            tags = dbManager.getTags("id", "1");
+            foreach(string tag in tags)
+            {
+                Console.WriteLine(tag);
+            }
 //            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
 //            dbManager.saveSelection(onedollar, "");
 //            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
