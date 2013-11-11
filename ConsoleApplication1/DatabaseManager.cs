@@ -69,7 +69,8 @@ namespace DatabaseModule
 
         private void Connect()
         {
-            const string remoteConnectionString = "mongodb://67.194.91.70";
+
+            const string remoteConnectionString = "mongodb://localhost";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
@@ -136,13 +137,7 @@ namespace DatabaseModule
             }
 
         }
-        //Saves object selected by gui
-        //image = cropped image of object, info = key/value dict of identifying info about that object
-        public void saveSelection(Image image, string info)
-        {
-            var filename = RandomString(10)+".jpg";
-            InsertImage("selected_objects", image, filename, info);  
-        }
+        
         public Image GetImage(string collectionName, string key, string value)
         {
             var cursor = this.Get(collectionName, key, value);
@@ -179,22 +174,7 @@ namespace DatabaseModule
 
             }
         }
-        public List<Tuple<Image, string> > getUnidentifedObjects()
-        {
-            List<Tuple<Image, string>> list = new List<Tuple<Image, string>>();
-            
-            var collection = objectsDatabase.GetCollection("selected_objects");
-            
-            MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
-            foreach(BsonDocument document in cursor)
-            {
-                Image image = GetImage(document);
-                Tuple<Image, string> tuple = new Tuple<Image, string>(image, document.ToString());
-                list.Add(tuple);
-            }
-            return list;
-
-        }
+        
         /*
          * Adds an object recognized by the CV side to the database
          * Right now relying on an integer ID. Will need to be hooked up to the 
@@ -338,12 +318,78 @@ namespace DatabaseModule
             var query = new QueryBuilder<BsonDocument>();
             return this.Get(collectionName, query.And(andList));
         }
+        /** Public interface functions for GUI/CV use **/
+        //Saves object selected by gui
+        //image = cropped image of object, info = key/value dict of identifying info about that object
+        public void saveSelection(Image image, string info)
+        {
+            var filename = RandomString(10) + ".jpg";
+            InsertImage("selected_objects", image, filename, info);
+        }
+        //Retrieve a previous selection, where key=value
+        //Returns a Dictionary containing info about the selection + the cropped image
+        //if no result found, returns null
+        public Dictionary<string, object> getSelection(string key, string value)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument matchedDoc = collection.FindOne(Query.EQ(key, value));
+            if(matchedDoc!=null)
+            {
+                Image image = GetImage(matchedDoc);
+                Dictionary<string, object> dict = matchedDoc.ToDictionary();
+                dict.Add("image", image);
+                return dict;
+            }
+            return null;
+        }
+        //Updates a selection with the given id, to have the given key/value pair in its info
+        //If the selection already has a value for the given key, it will be replaced by the new
+        //value, otherwise the new key will be added to the selection's info
+        public void updateSelectionInfo(string id, string key, string value)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument matchedDoc = collection.FindOneById(new ObjectId(id));
+            if(matchedDoc==null)
+            {
+                return;
+            }
+            matchedDoc.Set(key, value);
+            collection.Save(matchedDoc);
+            
+        }
+        //Updates a selection with the given id to have newInfo as it's info
+        //Will completely overwrite old info for the selection
+        public void updateSelectionInfo(string id, string newInfo)
+        {
+            var collection = objectsDatabase.GetCollection("selected_objects");
+            BsonDocument document = BsonDocument.Parse(newInfo);
+            document.Set("_id", new ObjectId(id));
+            collection.Save(document);
+        }
+        //Retrieves all objects that do not have a 'name' attribute
+        //Returns a List containting Dictionaries of key/value pairs representing a selection
+        //If no objects found without names, will return an empty list
+        public List<Dictionary<string, object>> getUnnamedObjects()
+        {
+            List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
 
+            var collection = objectsDatabase.GetCollection("selected_objects");
 
+            MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
+            foreach (BsonDocument document in cursor)
+            {
+                Image image = GetImage(document);
+                Dictionary<string, object> listItem = document.ToDictionary();
+                listItem.Add("image", image);
+                list.Add(listItem);
+            }
+            return list;
 
+        }
         static int Main(string[] args)
         {
             DatabaseManager dbManager = new DatabaseManager();
+
             var col = dbManager.objectsDatabase.GetCollection("RecognizedObjects");
             col.RemoveAll(); //Clearing out for testing temporarily
 
@@ -399,6 +445,7 @@ namespace DatabaseModule
             var output_img = dbManager.GetImage("test_collection", "filename", "onedollar.jpg");
             // output_img.Save("C:\\Users\\Ben\\Desktop\\new_output.jpg");
             System.Console.Write(output_img);
+
             return 0;
         }
     }
