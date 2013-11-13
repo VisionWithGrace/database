@@ -51,26 +51,25 @@ using System.Text;
  * 
  */
 
-
-
 namespace DatabaseModule
 {
+    
     public class DatabaseManager
     {
         private MongoServer server;
         private MongoDatabase objectsDatabase;
-        private string MainCollection;
+        private string collectionName;
         // private MongoCollection recognizedObjects;
         public DatabaseManager()
         {
-            MainCollection = "RecognizedObjects";
+            collectionName = "SelectedObjects";
             Connect();
         }
 
         private void Connect()
         {
 
-            const string remoteConnectionString = "mongodb://localhost";
+            const string remoteConnectionString = "mongodb://67.194.7.120";
             MongoClient client = new MongoClient(remoteConnectionString);
             server = client.GetServer();
             objectsDatabase = server.GetDatabase("choices_db");
@@ -112,7 +111,7 @@ namespace DatabaseModule
         }
         //inserts an image with the given metadata into specified collection
         //details should be a JSON-formatted string (dictionary of key-value pairs)
-        public void InsertImage(string collectionName, Image image, string filename, string details)
+        public void InsertImage(string collectionName, Image image, string filename, Dictionary<string, object> info)
         {
             using (var fs = new System.IO.MemoryStream())
             {
@@ -125,7 +124,7 @@ namespace DatabaseModule
                 BsonDocument bson;
                 try
                 {
-                    bson = BsonDocument.Parse(details);
+                    bson = new BsonDocument(info);
                 }
                 catch(Exception e)
                 {
@@ -182,20 +181,20 @@ namespace DatabaseModule
         public void addRecgonizedObject(RecognizedObject recObj)
         {
             BsonDocument doc = BsonDocument.Create(recObj);
-            this.Insert("RecognizedObjects", doc);
+            this.Insert(collectionName, doc);
         }
 
         /*
             edit object where identifyingKey= identifyingValue (i.e., “location” = “home”, or “id” = 7).
             Leaning towards some stack overflow-ish tagging system where Grace’s aid is able to add objects to some general tag (home, school, but in addition things like food, toys)
         */
-        void modifyObject(string identifyingKey, string identifyingValue, string fieldName, string changedValue)
+        void modifyObject(string identifyingKey, string identifyingValue, string fieldName, BsonValue changedValue)
         {
-            MongoCursor objectsToEdit = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            MongoCursor objectsToEdit = Get(collectionName, Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in objectsToEdit)
             {
-                doc.SetElement(new BsonElement(fieldName, changedValue));
-                objectsDatabase.GetCollection("RecognizedObjects").Save(doc); //Save document back into the collection
+                doc.Set(fieldName, changedValue);
+                objectsDatabase.GetCollection(collectionName).Save(doc); //Save document back into the collection
             }
         }
 
@@ -207,7 +206,7 @@ namespace DatabaseModule
          */
         void addTags(string identifyingKey, string identifyingValue, List<string> tagsToAdd)
         {
-            MongoCursor objectsToTag = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            MongoCursor objectsToTag = Get(collectionName, Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in objectsToTag)
             {
                 
@@ -222,7 +221,7 @@ namespace DatabaseModule
                 {
                     tagArray.Add(tagToAdd);
                 }
-                objectsDatabase.GetCollection("RecognizedObjects").Save(doc);
+                objectsDatabase.GetCollection(collectionName).Save(doc);
             }
         }
 
@@ -232,7 +231,7 @@ namespace DatabaseModule
         */
         void clearTags(string identifyingKey, string identifyingValue, List<string> tagsToRemove)
         {
-            MongoCursor docsToClearTags = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            MongoCursor docsToClearTags = Get(collectionName, Query.EQ(identifyingKey, identifyingValue));
             foreach (BsonDocument doc in docsToClearTags)
             {
                 if (doc.Contains("tags")) //Tags array does exist
@@ -247,18 +246,18 @@ namespace DatabaseModule
                             tagArray.RemoveAt(index);
                         }
                     }
-                    objectsDatabase.GetCollection("RecognizedObjects").Save(doc);
+                    objectsDatabase.GetCollection(collectionName).Save(doc);
                 }
             }
         }
 
         /*
          * Returns a list of tags associated with an object that matches the key value pair passed in
-         * Currently requiring the key value pair to return one unique element, will trigger an error otherwise
+         * Currently requiring the key value pair to return one unique element, will return null otherwise
          */
         List<string> getTags(string identifyingKey, string identifyingValue)
         {
-            MongoCursor matchedObjects = Get("RecognizedObjects", Query.EQ(identifyingKey, identifyingValue));
+            MongoCursor matchedObjects = Get(collectionName, Query.EQ(identifyingKey, identifyingValue));
             List<string> foundTags = new List<string>();
             if (matchedObjects.Size() == 1) //Not sure what we want to do about this. Do we want to return a list of tags for multiple objects?
             {
@@ -273,8 +272,8 @@ namespace DatabaseModule
             }
             else
             {
-                System.ArgumentException argEx = new System.ArgumentException("Found 0 or more than 1 matches in the database", identifyingValue);
-                throw argEx;
+				return null;
+               
             }
             return foundTags;
         }
@@ -282,12 +281,12 @@ namespace DatabaseModule
         public void enterSelectionData(SelectionData selecData)
         {
             BsonDocument doc = BsonDocument.Create(selecData);
-            this.Insert("SelectionData", doc);
+            this.Insert(collectionName, doc);
         }
 
         public MongoCursor retrieveRecentSelection()
         {
-            var collection = objectsDatabase.GetCollection("RecognizedObjects");
+            var collection = objectsDatabase.GetCollection(collectionName);
             return collection.FindAll();
         }
 
@@ -321,17 +320,46 @@ namespace DatabaseModule
         /** Public interface functions for GUI/CV use **/
         //Saves object selected by gui
         //image = cropped image of object, info = key/value dict of identifying info about that object
-        public void saveSelection(Image image, string info)
+        public void saveSelection(Image image, Dictionary<string, object> info)
         {
             var filename = RandomString(10) + ".jpg";
-            InsertImage("selected_objects", image, filename, info);
+            bool hasName = info.ContainsKey("name");
+            if (hasName)
+            {
+                MongoCursor priorSelections = Get(collectionName, Query.EQ("name", (string)info["name"]));
+                if ((string)info["name"]=="" || priorSelections.Size() == 0) //First time seeing an object with this name
+                {
+                    info.Add("count", 1);
+                    info.Add("timestamp", DateTime.Now);
+                    InsertImage(collectionName, image, filename, info);
+                }
+                else //Seeing an object previously named
+                {
+                    foreach (BsonDocument doc in priorSelections) //Should only be one.
+                    {
+                        int changedCount = (int)doc["count"] + 1;
+                        modifyObject("name", info["name"].ToString(), "count", changedCount);
+                    }
+                }
+            }
+            else
+            {
+                info.Add("name", "");
+                info.Add("count", 1);
+                info.Add("timestamp", DateTime.Now);
+                InsertImage(collectionName, image, filename, info);
+            }
+
+
+           
+            
         }
         //Retrieve a previous selection, where key=value
         //Returns a Dictionary containing info about the selection + the cropped image
         //if no result found, returns null
         public Dictionary<string, object> getSelection(string key, string value)
         {
-            var collection = objectsDatabase.GetCollection("selected_objects");
+            var collection = objectsDatabase.GetCollection(collectionName);
             BsonDocument matchedDoc = collection.FindOne(Query.EQ(key, value));
             if(matchedDoc!=null)
             {
@@ -342,12 +370,14 @@ namespace DatabaseModule
             }
             return null;
         }
+
+       
         //Updates a selection with the given id, to have the given key/value pair in its info
         //If the selection already has a value for the given key, it will be replaced by the new
         //value, otherwise the new key will be added to the selection's info
         public void updateSelectionInfo(string id, string key, string value)
         {
-            var collection = objectsDatabase.GetCollection("selected_objects");
+            var collection = objectsDatabase.GetCollection(collectionName);
             BsonDocument matchedDoc = collection.FindOneById(new ObjectId(id));
             if(matchedDoc==null)
             {
@@ -361,7 +391,7 @@ namespace DatabaseModule
         //Will completely overwrite old info for the selection
         public void updateSelectionInfo(string id, string newInfo)
         {
-            var collection = objectsDatabase.GetCollection("selected_objects");
+            var collection = objectsDatabase.GetCollection(collectionName);
             BsonDocument document = BsonDocument.Parse(newInfo);
             document.Set("_id", new ObjectId(id));
             collection.Save(document);
@@ -373,7 +403,7 @@ namespace DatabaseModule
         {
             List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
 
-            var collection = objectsDatabase.GetCollection("selected_objects");
+            var collection = objectsDatabase.GetCollection(collectionName);
 
             MongoCursor cursor = collection.Find(queryFromString("{\"name\" : {\"$exists\": false}}"));
             foreach (BsonDocument document in cursor)
@@ -386,22 +416,56 @@ namespace DatabaseModule
             return list;
 
         }
+
+        private int compareDocsTimestamp(Dictionary<string, object> dict1, Dictionary<string, object> dict2)
+        {
+            int frequencyDiff = (int)(dict1["count"]) - (int)(dict2["count"]);
+            double timeDiff = ((DateTime)(dict1["timestamp"]) - (DateTime)(dict2["timestamp"])).TotalDays;
+
+            return (int)Math.Floor(0.5 * frequencyDiff + 0.5 * timeDiff);
+
+
+
+        }
+        //given a list of tags describing a current context, return a list of objects that are tagged
+        //with these tags
+        public List<Dictionary<string, object>> getLikelyObjects(List<string> tags, int maxResults = 99)
+        {
+            List<Dictionary<string, object>> likelyObjects = new List<Dictionary<string, object>>();
+
+            var collection = objectsDatabase.GetCollection(collectionName);
+            var query = queryFromString("{tags:{ $in: " + tags.ToString() + "}}");
+
+            MongoCursor docsFound = Get(collectionName, query);
+            foreach(BsonDocument doc in docsFound)
+            {
+                likelyObjects.Add(doc.ToDictionary());
+            }
+            likelyObjects.Sort(compareDocsTimestamp);
+            if(likelyObjects.Count > maxResults)
+            {
+                likelyObjects.RemoveRange(maxResults, likelyObjects.Count - maxResults);
+            }
+            
+
+            return likelyObjects;
+        }
         static int Main(string[] args)
         {
             DatabaseManager dbManager = new DatabaseManager();
 
-            var col = dbManager.objectsDatabase.GetCollection("RecognizedObjects");
-            col.RemoveAll(); //Clearing out for testing temporarily
+            var col = dbManager.objectsDatabase.GetCollection(dbManager.collectionName);
+            //col.RemoveAll(); //Clearing out for testing temporarily
 
-            dbManager.Insert("test_collection", new BsonDocument{
+            dbManager.Insert(dbManager.collectionName, new BsonDocument{
             {"test", "hello"},
             {"author", "ben"}
         });
-            dbManager.Insert("test_collection", new BsonDocument{
+            dbManager.Insert(dbManager.collectionName, new BsonDocument{
             {"test", "hello"},
             {"author", "zach"}
         });
-            dbManager.Insert("test_collection", new BsonDocument{
+            dbManager.Insert(dbManager.collectionName, new BsonDocument{
             {"test", "nm u"},
             {"author", "ben"}
         });
@@ -411,34 +475,28 @@ namespace DatabaseModule
             {"author", "ben"}
         };
 
-            dbManager.Insert("RecognizedObjects", new BsonDocument {
+            dbManager.Insert(dbManager.collectionName, new BsonDocument {
                 {"id", "1"},
                 {"time", "12"}
             });
 
-            dbManager.Insert("RecognizedObjects", new BsonDocument {
+            dbManager.Insert(dbManager.collectionName, new BsonDocument {
                 {"id", "2"},
                 {"time", "13"}
             });
 
-            System.Console.Write(dbManager.Get("test_collection", queryDict).Count() + "\n");
+            System.Console.Write(dbManager.Get(dbManager.collectionName, queryDict).Count() + "\n");
             queryDict.Add("nothing", "45");
-            System.Console.Write(dbManager.Get("test_collection", queryDict).Count());
+            System.Console.Write(dbManager.Get(dbManager.collectionName, queryDict).Count());
 
             dbManager.modifyObject("id", "1", "time", "17");
             dbManager.modifyObject("id", "2", "time", "19");
-            List<string> tmp = new List<string>();
-            tmp.Add("Home");
-            tmp.Add("Toy");
-            dbManager.addTags("id", "1", tmp);
-            List<string> tags = new List<string>();
-            tags = dbManager.getTags("id", "1");
-            foreach(string tag in tags)
-            {
-                Console.WriteLine(tag);
-            }
-//            Image onedollar = Image.FromFile("C:\\Users\\bhburke\\dollar-bill-2.jpg");
-//            dbManager.saveSelection(onedollar, "");
+           
+           
+            Image twodollar = Image.FromFile("\\\\engin-labs.m.storage.umich.edu\\zahuston\\windat.v2\\Desktop\\2-dollar-bill.jpg");
+            Dictionary<string, object> dollarDictionary = new Dictionary<string, object>();
+            dollarDictionary.Add("name", "twodollar");
+            dbManager.saveSelection(twodollar, dollarDictionary);
 //            Image fivedollar = Image.FromFile("C:\\Users\\Ben\\Desktop\\New_five_dollar_bill.jpg");
 //            dbManager.InsertImage("test_collection", onedollar, "onedollar.jpg", "{'president': 'George Washington', 'value': '1'}");
 //            dbManager.InsertImage("test_collection", fivedollar, "fivedollar.jpg", "{'president': 'Abraham Lincoln', 'value': '5'}");

@@ -47,3 +47,13 @@ C:\Users\zahuston.UMROOT\Documents\GitHub\nov9\ConsoleApplication1\bin\Debug\Mon
 C:\Users\zahuston.UMROOT\Documents\GitHub\nov9\ConsoleApplication1\bin\Debug\MongoDB.Driver.dll
 C:\Users\zahuston.UMROOT\Documents\GitHub\nov9\ConsoleApplication1\bin\Debug\MongoDB.Bson.xml
 C:\Users\zahuston.UMROOT\Documents\GitHub\nov9\ConsoleApplication1\bin\Debug\MongoDB.Driver.xml
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.exe
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.pdb
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.dll
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.dll
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\MongoDB.Bson.xml
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\bin\Debug\MongoDB.Driver.xml
+\\engin-labs.m.storage.umich.edu\zahuston\windat.v2\Desktop\GitHub\database\ConsoleApplication1\obj\x86\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
